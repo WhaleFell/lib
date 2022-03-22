@@ -101,7 +101,8 @@ Download(){
 	cd "${FOLDER}"
 	if [[ ${bit} == "x86_64" ]]; then
         # github.do 加速
-		wget --no-check-certificate -N "https://hub.fastgit.xyz/shadowsocks/go-shadowsocks2/releases/download/${new_ver}/shadowsocks2-linux.gz"
+		wget --no-check-certificate -N "https://github.do/https://github.com/shadowsocks/go-shadowsocks2/releases/download/${new_ver}/shadowsocks2-linux.gz"
+		echo "Debug"
 	else
 		echo -e "${Error} Shadowsocks-Go版目前不支持 非64位 构架的服务器安装，请更换系统 !" && rm -rf "${FOLDER}" && exit 1
 	fi
