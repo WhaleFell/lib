@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-# 抖音去水印 Flask API 云函数版本.
+# 抖音去水印 Flask API 支持 视频/图文
 import json
 import re
 from typing import List, Optional
@@ -157,8 +157,10 @@ def get_dy_main(share_url: str) -> BaseResponse:
 def dy_api():
     req = request_parse(request)
     # app.logger.warning(req)
-    url = req.get('url')[0]
+    url = req.get('url')
     if url:
+        if type(url) == list:
+            url = url[0]
         try:
             return get_dy_main(url).resp
         except Exception as why:
