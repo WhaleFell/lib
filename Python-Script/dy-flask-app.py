@@ -1,12 +1,18 @@
 # -*- coding:utf-8 -*-
 # 抖音去水印 Flask API 支持 视频/图文
 import json
-import httpx
-from pydantic import BaseModel
-from typing import Optional, List
 import re
+from typing import List, Optional
+
+import httpx
+from flask import Flask, Response, request, make_response
+from flask_cors import CORS
+from pydantic import BaseModel
 from urllib3 import disable_warnings
+
 disable_warnings()
+app = Flask(__name__)
+CORS(app, supports_credentials=True, resources="/*")  # 跨域
 
 header = {
     "User-Agent": "Mozilla/5.0 (Linux; Android 8.1.0; ALP-AL00 Build/HUAWEIALP-AL00; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/63.0.3239.83 Mobile Safari/537.36 T7/10.13 baiduboxapp/10.13.0.11 (Baidu; P1 8.1.0)"
@@ -23,12 +29,42 @@ class Data(BaseModel):
     img_list: List = []  # 无水印图片列表(如果有)
 
 
-class Response(BaseModel):
+class BaseResponse(BaseModel):
     """返回的响应"""
     status: int = 0  # 状态码 0-->成功 1-->失败
     type_: Optional[str]  # 链接类型  v:视频 / p:图片 / None:错误
     msg: str = "前端显示的简短信息"
     data: Data = []  # 数据对象
+
+    @property
+    def resp(self):
+        '''BaseModel类型返回json'''
+        response = make_response(
+            json.dumps(
+                self.dict(),
+                ensure_ascii=False,
+                sort_keys=False
+            ),
+        )
+        if self.status == 1:
+            response.status_code = 403
+        response.mimetype = 'application/json'
+        # 跨域设置
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'OPTIONS,HEAD,GET,POST'
+        response.headers['Access-Control-Allow-Headers'] = 'x-requested-with'
+        return response
+
+
+def request_parse(req_data: request) -> dict:
+    '''解析请求数据并以字典的形式返回'''
+    if req_data.method == 'POST':
+        data = req_data.form
+
+    elif req_data.method == 'GET':
+        data = req_data.args
+
+    return dict(data)
 
 
 def pp_json(json_thing, sort=True, indents=4):
@@ -56,31 +92,33 @@ def handle_pics(imgs: list) -> list:
                 imgs_ok.append(img_url)
                 print("================")
                 print(img_url)
-                with open(f"p_{img[0]}.jpg",mode="wb") as p:
+                with open(f"p_{img[0]}.jpg", mode="wb") as p:
                     p.write(img_resp.content)
                 break
     return imgs_ok
 
 
-def get_dy_main(share_url: str) -> Response:
-    """传入dy分享链接,返回 Response Object
+def get_dy_main(share_url: str) -> BaseResponse:
+    """传入dy分享链接,返回 BaseResponse Object
     :param share_url: dy 复制的分享链接
-    :return: Response Object
+    :return: BaseResponse Object
     """
     data = Data()
+    if share_url.startswith("https://" or "http://") is False:
+        return BaseResponse(status=1, msg="链接需带http(s)://")
     raw_url = httpx.get(share_url, headers=header, timeout=5).url
 
     # 正则匹配视频id
     pat = re.compile(r"/video/(\d+)[^d]")
     result = pat.search(str(raw_url))
     if result == None:
-        return Response(status=1, msg="获取视频ID失败,请检查链接或重试.")
+        return BaseResponse(status=1, msg="获取视频ID失败,请检查链接或重试.")
     else:
         v_id = result.group(1)
 
     api = f"https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/?item_ids={v_id}"
-    api_response = httpx.get(api, headers=header).json()
-    api_data = api_response["item_list"]
+    api_BaseResponse = httpx.get(api, headers=header).json()
+    api_data = api_BaseResponse["item_list"]
     # pp_json(api_data)
     if api_data:
         type_ = "v"
@@ -102,11 +140,22 @@ def get_dy_main(share_url: str) -> Response:
             ]
             # data.img_list = handle_pics(imgs)
 
-        return Response(type_=type_, msg="视频解析成功！", data=data)
+        return BaseResponse(type_=type_, msg="视频解析成功！", data=data)
 
-    return Response(status=1, msg=f"视频解析失败ID:{v_id}")
+    return BaseResponse(status=1, msg=f"视频解析失败ID:{v_id}")
+
+
+@app.route('/dy/', methods=['GET', 'POST'])
+def dy_api():
+    req = request_parse(request)
+    url = req.get('url')
+    if url:
+        try:
+            return get_dy_main(url).resp
+        except Exception as why:
+            return BaseResponse(status=1, msg=f"发生未知错误!{why}").resp
+    return BaseResponse(status=1, msg=f"url参数为空!").resp
 
 
 if __name__ == "__main__":
-    # print(get_dy_main("https://v.douyin.com/N5gu9XT/"))
-    get_dy_main("https://v.douyin.com/N5gu9XT/")
+    app.run(host="0.0.0.0", port=8080, debug=True)
