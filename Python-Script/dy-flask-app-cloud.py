@@ -1,10 +1,10 @@
 # -*- coding:utf-8 -*-
-# 抖音去水印 Flask API 支持 视频/图文
+# 抖音去水印 Flask API 云函数版本.
 import json
 import re
 from typing import List, Optional
 
-import httpx
+import requests
 from flask import Flask, Response, request, make_response
 from flask_cors import CORS
 from pydantic import BaseModel
@@ -87,7 +87,7 @@ def handle_pics(imgs: list) -> list:
     imgs_ok = []
     for img in enumerate(imgs):
         for img_url in img[1]["url_list"]:
-            img_resp = httpx.get(img_url, headers=header, timeout=5)
+            img_resp = requests.get(img_url, headers=header, timeout=5)
             if img_resp.status_code == 200:
                 imgs_ok.append(img_url)
                 print("================")
@@ -103,10 +103,11 @@ def get_dy_main(share_url: str) -> BaseResponse:
     :param share_url: dy 复制的分享链接
     :return: BaseResponse Object
     """
+    
     data = Data()
     if share_url.startswith("https://" or "http://") is False:
         return BaseResponse(status=1, msg="链接需带http(s)://")
-    raw_url = httpx.get(share_url, headers=header, timeout=5).url
+    raw_url = requests.get(share_url, headers=header, timeout=5).url
 
     # 正则匹配视频id
     pat = re.compile(r"/video/(\d+)[^d]")
@@ -117,7 +118,7 @@ def get_dy_main(share_url: str) -> BaseResponse:
         v_id = result.group(1)
 
     api = f"https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/?item_ids={v_id}"
-    api_BaseResponse = httpx.get(api, headers=header).json()
+    api_BaseResponse = requests.get(api, headers=header).json()
     api_data = api_BaseResponse["item_list"]
     # pp_json(api_data)
     if api_data:
@@ -126,8 +127,15 @@ def get_dy_main(share_url: str) -> BaseResponse:
         data.m_url = api_data[0]["music"]["play_url"]["uri"]
         data.p_url = api_data[0]["video"]["origin_cover"]["url_list"][0]
         data.author = api_data[0]['author']['nickname']
-        data.v_url = api_data[0]["video"]["play_addr"]["url_list"][0].replace(
+        v_url = api_data[0]["video"]["play_addr"]["url_list"][0].replace(
             'playwm', 'play')
+        
+        # 处理视频URL
+        try:
+            data.v_url = requests.get(v_url, headers=header, timeout=5).url
+        except:
+            data.v_url = v_url
+
         imgs = api_data[0]['images']
         if imgs:
             type_ = "p"
@@ -148,8 +156,8 @@ def get_dy_main(share_url: str) -> BaseResponse:
 @app.route('/dy/', methods=['GET', 'POST'])
 def dy_api():
     req = request_parse(request)
-    url = req.get('url')
-    print(req)
+    # app.logger.warning(req)
+    url = req.get('url')[0]
     if url:
         try:
             return get_dy_main(url).resp
@@ -159,4 +167,4 @@ def dy_api():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0", port=9000, debug=True)
