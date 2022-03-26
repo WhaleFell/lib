@@ -116,12 +116,15 @@
                     <div v-else>
                         <div class="panel panel-default">
                             <div class="panel-body">
-                                <b>视频链接：</b><br />
-                                <video id="example_video_1" class="video-js vjs-default-skin" controls preload="none" width="640" height="264" poster="http://vjs.zencdn.net/v/oceans.png" data-setup="{}">
-                                    <source v-bind:src="resp.data.v_url" type="video/mp4">
-                                    <p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a></p>
-                                  </video>
+                                <b>视频链接：</b>
                                 <a v-bind:href="resp.data.v_url" target="_blank">(点击下载)</a>
+                                <br />
+                                <div class="embed-responsive embed-responsive-16by9">
+                                    <video width="320" height="240" controls="controls">
+                                        <source v-bind:src="resp.data.v_url" type="video/mp4">
+                                    </video>
+                                </div>
+
                             </div>
                         </div>
                     </div>
@@ -140,7 +143,7 @@
     </div>
 </body>
 <script>
-    
+
     // api 地址基于 Flask 搭建，可能会失效。请知悉
     // 重度使用者请自行通过腾讯云函数搭建！！！
     var api = "https://service-dyjwokh6-1300913563.gz.apigw.tencentcs.com/dy/"
