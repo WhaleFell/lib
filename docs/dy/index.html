@@ -67,9 +67,8 @@
                     </div>
                     <div class="panel panel-default">
                         <div class="panel-body">
-                            <b>音乐:</b>
+                            <b>音乐:</b><a v-bind:href="resp.data.m_url" target="_blank"><b>(点击下载)</b></a>
                             <audio v-bind:src="resp.data.m_url" controls>
-                            <a v-bind:href="resp.data.m_url" target="_blank"><b>(点击下载)</b></a>
                         </div>
                     </div>
                     <div class="panel panel-default">
@@ -150,7 +149,7 @@
         el: '#app',
         data: {
             api: api,
-            raw_url: '3.58 ZzT:/ %張淼淼 会一直这样，不会好的，没有希望%抗抑郁 %双相情感障碍   https://v.douyin.com/N5gu9XT/ 复制此链接，打开Dou音搜索，直接观看视频',
+            raw_url: '',
             url: '',
             resp: '',
             error: ''
