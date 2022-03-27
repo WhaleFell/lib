@@ -12,9 +12,10 @@
     <script src="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
     <script src="https://cdn.staticfile.org/axios/0.18.0/axios.min.js"></script>
-    <link href="http://vjs.zencdn.net/5.0.2/video-js.css" rel="stylesheet">
-    <script src="http://vjs.zencdn.net/ie8/1.1.0/videojs-ie8.min.js"></script>
-    <script src="http://vjs.zencdn.net/5.0.2/video.js"></script>
+    <!-- 引入 layui.css -->
+    <link rel="stylesheet" href="https://unpkg.com/layui@2.6.8/dist/css/layui.css">
+    <!-- 引入 layui.js -->
+    <script src="https://unpkg.com/layui@2.6.8/dist/layui.js"></script>
 </head>
 
 <body>
@@ -120,8 +121,8 @@
                                 <a v-bind:href="resp.data.v_url" target="_blank">(点击下载)</a>
                                 <br />
                                 <div class="embed-responsive embed-responsive-16by9">
-                                    <video width="320" height="240" controls="controls">
-                                        <source v-bind:src="resp.data.v_url" type="video/mp4">
+                                    <video ref="video" controls controlslist="nodownload" preload="none" width="100%"
+                                        height="100%" :poster="resp.data.p_url" :src="resp.data.v_url">
                                     </video>
                                 </div>
 
@@ -169,6 +170,10 @@
                 return s[0];
             },
             req_api: function () {
+                layer.msg('请求接口中', {
+                    icon: 16
+                    , shade: 0.01
+                });
                 axios.get(api, {
                     params: {
                         url: this.url,
@@ -176,13 +181,13 @@
                 })
                     .then((response) => {
                         this.resp = response.data;
-
+                        layer.closeAll('loading');
                     })
                     .catch((error) => {
                         this.error = true;
                         this.resp = error;
+                        layer.closeAll('loading');
                     })
-
             },
         },
         // 监听 raw_url 变化
